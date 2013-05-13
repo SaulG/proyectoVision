@@ -1,0 +1,308 @@
+import numpy as np
+import Tkinter
+from PIL import ImageDraw
+import Image
+import ImageTk
+from sys import argv
+import time
+from math import fabs
+
+def convolucion(imagen, h):
+    iwidth, iheight = imagen.size
+    imagen = imagen.convert('L')
+    im = imagen.load()
+    mheight, mwidth = h.shape
+    g = np.zeros(shape=(iheight, iwidth))
+    for x in xrange(iheight):
+        for y in xrange(iwidth):
+            sum = 0.0
+            c = 0.0001
+            for j in xrange(mheight):
+                zj = ( j - ( mheight / 2 ) )
+                for i in xrange(mwidth):
+                    zi = ( i - ( mwidth / 2 ) )
+                    if y + zi >= 0 and y + zi < iwidth and \
+                            x + zj >= 0 and x + zj < iheight:
+                        sum += im[y + zi, x + zj] * h[i, j]
+                        c += 1.0
+            g[x,y] = sum / c
+    return g
+
+def filtro(original):
+    width, height = original.size
+    original = original.convert('L')
+    modificado = Image.new(mode='L', size =(width,height))
+    org = original.load()
+    mod = modificado.load()
+    contador = 0
+    min = 0
+    max = 0
+    for y in xrange(height):
+        for x in xrange(width):
+            pixel = org[x,y]
+            if min >= pixel:
+                min = pixel
+            if max <= pixel:
+                max = pixel
+    print "MAX:",max," MIN:",min
+    for y in xrange(height):
+        for x in xrange(width):
+            pixel = org[x,y]
+            try:
+                pixel += org[x-1,y]
+                contador+=1
+            except:
+                None
+            try:
+                pixel += org[x+1,y]
+                contador+=1
+            except:
+                None
+            try:
+                pixel += org[x,y+1]
+                contador+=1
+            except:
+                None
+            try:
+                pixel += org[x,y-1]
+                contador+=1
+            except:
+                None
+            promedio = (pixel) / (contador)
+            r = max - min
+            prop = 256.0 / r
+            p = int((promedio -min) * prop)
+            if p <= 90:
+                mod[x,y] = 0
+            else: 
+                mod[x,y] = 255
+            contador = 1
+            pixel = 0
+    return Image.fromarray(np.array(modificado))
+         
+def filtroPorNumeros(im,n):
+    for x in xrange(n):
+        im = filtro(im)
+    return im
+
+def nuevaImagen(matriz):
+    height, width = matriz.shape
+    imagen = Image.new(mode='L', size =(width,height))
+    im = imagen.load()
+    for x in xrange(height):
+        for y in xrange(width):
+            im[y, x] = matriz[x, y]
+    return Image.fromarray(np.array(imagen))
+#metodo breath first search
+#toma como parametro la matriz de la imagen, una copia de la matriz
+#el color asignado RGB, la cola que es una lista, el ancho y la
+#altura de la imagen original
+def bfs(imagen, cola, width, height, grupo):
+    #toma el primer elemento de la cola y lo saca
+    (columna, fila) = cola.pop(0)
+    #si imagen no es color negro nos regresa un false
+    if not imagen[fila, columna] == 0:
+        return False
+    #toma como blanco el pixel en la cola
+    imagen[fila, columna] = 255 # ignora por poner en blanco
+    grupo.append((columna, fila))
+    #se visitan los vecinos arriba, izquierda, derecha y abajo
+    for dx in [-1, 0, 1]:
+        for dy in [-1, 0, 1]:
+            if fabs(dx) + fabs(dy) == 1:
+                (px, py) = (columna + dx, fila + dy)
+                # se coloca un rango para no salir de las orillas
+                if px >= 0 and px < width and py >= 0 and py < height:
+                    if imagen[py, px] == 0: # solo los negros entran en la cola
+                        if (px, py) not in cola:
+                            cola.append((px, py))
+    return True
+
+def asignColor(grupo):
+    return ((grupo * 5 + 7) % 256, (grupo * 13 + 41) % 256, (grupo * 29 + 13) % 256)
+
+#Metodo para hacer deteccion de objetos
+#toma como parametro el nombre de la imagen
+def deteccionObjetos(imagen):
+    #Toma las proporciones de la imagen
+    height, width = imagen.size
+    #toma es escala de grises la imagen
+    imagen = imagen.convert('L')
+    #carga la imagen para manipularla
+    im = imagen.load()
+
+    porAsignar = list()
+    for y in xrange(height):
+        for x in xrange(width):
+            if im[y, x] == 255: # blanco
+                porAsignar.append((x, y))
+
+    grupos = list()
+
+    while True:
+        grupo = list()
+        # se coloca como false un marcador
+        listo = False
+        #Se recorre segun las proporciones
+        for y in xrange(height):
+            for x in xrange(width):
+                # si el pixel actual es negro
+                #el marcador se coloca en true
+                # y se sale del ciclo
+                if im[y, x] == 0: # negro
+                    listo = True
+                    break
+            if listo:
+                break
+        #si el marcador es falso sale del ciclo infinito
+        if not listo:
+            break
+        #se crea la cola
+        cola = list()
+        # agrega la coordenada donde se encuentra nuestro pixel
+        cola.append((x, y))
+        #este ciclo seguira hasta que la cola no tenga nada
+        while len(cola) > 0:
+            #se hace breath first search
+            #tomando como parametro matriz de la imagen, la matriz creada en rgb
+            #la cola, el ancho y la altura de la imagen
+            bfs(im, cola, width, height, grupo)
+        grupos.append(grupo)
+        
+    mayor = 0
+    segundoMayor = 0
+    fondoPos = None
+    dronePos = None
+    for pos in xrange(len(grupos)):
+        tam = len(grupos[pos])
+        if tam > mayor:
+            fondoPos = pos
+            mayor = tam
+        elif tam > segundoMayor:
+            dronePos = pos
+            segundoMayor = tam
+
+    fondo = grupos[fondoPos]
+    drone = grupos[dronePos]
+        
+    for pos in xrange(len(grupos)):
+        if pos != fondoPos and pos != dronePos:
+            porAsignar += grupos[pos]
+
+    total = width * height
+
+    ciclado = 0
+    noSePudo = False
+    while len(porAsignar) > 0:
+        (x, y) = porAsignar.pop(0)
+        buscando = True
+        for dx in [-1, 0, 1]:
+            for dy in [-1, 0, 1]:
+                vecino = (x + dx, y + dy) 
+                if vecino in drone:
+                    drone.append((x, y))
+                    ciclado = 0
+                    buscando = False
+                    break
+                if vecino in fondo:
+                    fondo.append((x, y))
+                    ciclado = 0
+                    buscando = False
+                    break
+            if not buscando:
+                break
+        if buscando:
+            porAsignar.append((x, y))
+            ciclado += 1
+            if ciclado > total / 50:
+                noSePudo = True
+                break
+
+    if noSePudo:
+        print 'No se pudo'
+
+    clasificados = len(fondo) + len(drone)
+    # total - clasificados debe ser cero
+
+    cp = Image.new(mode='RGB', size=(height, width))
+    copia = cp.load()
+
+    for (x, y) in fondo:
+        copia[y, x] = 0, 255, 0
+
+    minX = width
+    maxX = 0
+    minY = height
+    maxY = 0
+
+    for (x, y) in drone:
+        copia[y, x] = 0, 0, 255
+        if x < minX:
+            minX = x
+        if x > maxX:
+            maxX = x
+        if y < minY:
+            minY = y
+        if y > maxY:
+            maxY = y
+
+    print 'Esquina superior:',  minX, minY
+    ancho = maxX - minX
+    altura = maxY - minY
+    print 'Dimensiones:', ancho, altura
+    cx = minX + ancho / 2
+    cy = minY + altura / 2
+    print 'Centro del drone:', cx, cy
+    ix = width * 0.5
+    iy = height * 0.5
+    print "Centro de la imagen x: ",ix," y: ",iy
+    print "dx: ", (cx - ix)," dy: ", (cy - iy)
+    for x in xrange(minX, maxX + 1):
+        copia[minY, x] = 255, 0, 0
+
+    for x in xrange(minX, maxX + 1):
+        copia[maxY, x] = 255, 0, 0
+
+    for y in xrange(minY, maxY + 1):
+        copia[y, minX] = 255, 0, 0
+
+    for y in xrange(minY, maxY + 1):
+        copia[y, maxX] = 255, 0, 0
+
+    for x in xrange(cx - 1, cx + 2):
+        for y in xrange(cy - 1, cy + 2):
+            copia[y, x] = 255, 255, 0
+
+    return Image.fromarray(np.array(cp))
+
+
+def main():
+    imagen = Image.open(argv[1])
+    original = imagen
+    px = np.array([[-1,0,1], [-1,0,1], [-1,0,1]])
+    py = np.array([[1,1,1], [0,0,0], [-1,-1,-1]])
+    t1 = time.time()
+    g = (convolucion(original, px)**2 + convolucion(original, py)**2) ** 0.5
+    h, w = g.shape
+    prom = np.average(g)
+    width, height = imagen.size
+    imagen = imagen.convert('L')
+    im = imagen.load()
+    for x in xrange(height):
+        for y in xrange(width):
+            if g[x, y] < 4 * prom / 3:
+                im[y, x] = 0
+            else:
+                im[y, x] = 255
+    imagen_binaria = Image.fromarray(np.array(imagen))
+    imagen_deteccionObjetos = deteccionObjetos(imagen_binaria)
+    
+    root = Tkinter.Tk()
+    tkimageOrig = ImageTk.PhotoImage(imagen_binaria)
+    tkimageDeteccionObjetos = ImageTk.PhotoImage(imagen_deteccionObjetos)
+    Tkinter.Label(root, image = tkimageOrig).pack(side="right")
+    Tkinter.Label(root, image = tkimageDeteccionObjetos).pack(side="left")
+    t2 =time.time()
+    print "Tiempo total: ",t2-t1
+    root.mainloop()
+main()

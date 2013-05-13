@@ -1,0 +1,3 @@
+#!/bin/bash
+
+convert original.png -resize 160x thumbnail.png

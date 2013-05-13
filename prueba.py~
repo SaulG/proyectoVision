@@ -1,0 +1,28 @@
+from Tkinter import *
+import Image
+import ImageTk 
+import cv2
+from subprocess import call
+
+def tk(imagen):
+    root = Tk()
+    width, height = imagen.size
+    canvas = Canvas(root, width=width, height=height)
+    canvas.pack(expand=YES, fill=BOTH)
+    imagen_canvas = ImageTk.PhotoImage(imagen)
+    imagen_canvas_setting = canvas.create_image((2, 2), image=imagen_canvas, anchor=NW)
+    root.mainloop()
+    return
+
+def main():
+    vd = cv2.VideoCapture()
+    vd.open(0)
+    retval, image = vd.retrieve()
+    vd.release()
+    cv2.imwrite("imagen.png", image)
+    call(["./thumbnail.sh"])
+    thumbnail = Image.open('thumbnail.png')
+    tk(thumbnail)
+    return
+
+main()
