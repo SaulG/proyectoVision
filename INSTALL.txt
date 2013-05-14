@@ -1,0 +1,7 @@
+Se utilizó Python con la versión 2.7. Para poder ejecutar los
+programas que se encuentran en el proyecto se necesitan instalar las
+siguientes dependencias:
+
+   PIL >=  versión 1.1.7
+   Tkinter >= versión 8.5
+   Numpy >= versión 1.7.0
