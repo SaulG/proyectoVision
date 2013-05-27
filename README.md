@@ -30,9 +30,23 @@ ciertas reglas establecidas.
 
    Dichas librerías fueron usadas con Python versión 2.7.
 
+Conclusiones de desempeño
+
+El tamaño de la imagen procesada es de 320x129, su extensión es png y cada imagen tiene un peso promedio de 54 KB.
+
+El procesador utilizado es de 2.3 GHz Intel Core i5.
+
+Con una memoria RAM de 4GB.
+
+Aunque el programa está diseñado para soportar cualquier tamaño de imagen, se utilizó en este caso un tamaño que puede ser mucho más reducido pero por motivos de demostración se tomaron de ese tamaño definido (320x 129).
+
+El desempeño cambia mucho al momento de estar procesando una imagen en la que el drone es más grande que el fondo, como se puede ver en la gráfica con una imagen logró tardar ~25 segundos.
+
+
 
 Trabajo a futuro
 
-        Aplicación de velocidades del drone saber la velocidad de movimiento.
+- Aplicación de velocidades del drone saber la velocidad de movimiento.
 
-        Existe cierto problema al momento que el drone se encuentra parcialmente visto dentro de la imagen, ya que este lo detecta como si se estuviera alejando y pide que se acerque el drone (como podrán ver en la imagen de abajo).
+- Existe cierto problema al momento que el drone se encuentra parcialmente visto dentro de la imagen, ya que este lo detecta como si se estuviera alejando y pide que se acerque el drone (como podrán ver en la imagen de abajo).
+
