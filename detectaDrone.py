@@ -1,3 +1,5 @@
+from os import listdir
+from os.path import isfile, join
 import numpy as np
 import Tkinter
 from PIL import ImageDraw
@@ -6,7 +8,6 @@ import ImageTk
 from sys import argv
 import time
 from math import fabs
-
 
 def convolucion(imagen, h):
     iancho, ialtura = imagen.size
@@ -34,8 +35,6 @@ def convolucion(imagen, h):
             g[x, y] = sum / c
 
     return g
-
-
 
 #metodo breath first search
 #toma como parametro la matriz de la imagen, una copia de la matriz
@@ -158,9 +157,6 @@ def deteccionObjetos(imagen):
                 noSePudo = True
                 break
 
-    if noSePudo:
-        print 'No se pudo'
-
     clasificados = len(fondo) + len(drone)
     # total - clasificados debe ser cero
 
@@ -186,65 +182,65 @@ def deteccionObjetos(imagen):
         if y > maxY:
             maxY = y
 
-    print 'Esquina superior:',  minX, minY
+    #print 'Esquina superior:',  minX, minY
     droneAncho = maxX - minX
     droneAltura = maxY - minY
-    print 'Dimensiones:', droneAncho, droneAltura
+    #print 'Dimensiones:', droneAncho, droneAltura
     cx = minX + droneAncho / 2
     cy = minY + droneAltura / 2
-    print 'Centro del drone:', cx, cy
+    #print 'Centro del drone:', cx, cy
     ix = ancho * 0.5
     iy = altura * 0.5
 
-    print "Centro de la imagen x: ", ix, " y: ", iy
+    #print "Centro de la imagen x: ", ix, " y: ", iy
     dx = cx - ix
     dy = cy - iy
-    print 'Diferencias:', dx, dy
+    #print 'Diferencias:', dx, dy
 
     mx = ancho / 10
-    print 'Tolerancia horizontal:', mx
+    #print 'Tolerancia horizontal:', mx
 
     my = altura / 6
-    print 'Tolerancia vertical:', my
+    #print 'Tolerancia vertical:', my
 
     zmin = ancho / 3
     zmax = ancho / 2
-    print 'Rango de profundidad:', zmin, zmax
+    #print 'Rango de profundidad:', zmin, zmax
 
     direcciones = list()
 
     if droneAncho < zmin:
         direcciones.append('Acercarse')
-        print 'Acercarse'
+        #print 'Acercarse'
     elif droneAncho > zmax:
         direcciones.append('Alejarse')
-        print 'Alejarse'
+        #print 'Alejarse'
     elif fabs(dx) > mx: # se necesita correccion horizontal
         d = 'Mover'
-        print 'Mover'
+        #print 'Mover'
         if fabs(dx) > 3 * mx: # se necesita mucha correccion
             d +=' mucho '
-            print ' mucho '
+            #print ' mucho '
         if dx < 0:
             d +=' a la derecha,'
-            print 'a la derecha'
+            #print 'a la derecha'
         else:
             d +=' a la izquierda,'
-            print 'a la izquierda'
+            #print 'a la izquierda'
         direcciones.append(d)
     elif fabs(dy) > my:
         d =' Mover hacia '
-        print 'Mover hacia'
+        #print 'Mover hacia'
         if dy < 0:
             d += ' abajo '
-            print 'abajo'
+            #print 'abajo'
         else:
             d += ' arriba '
-            print 'arriba'
+            #print 'arriba'
         direcciones.append(d)
     else:
         direcciones.append('Todo bien')
-        print 'Todo bien'
+        #print 'Todo bien'
 
     for x in xrange(minX, maxX + 1):
         copia[x, minY] = 255, 0, 0
@@ -266,56 +262,59 @@ def deteccionObjetos(imagen):
 
 
 def main():
+    path = argv[1]
+    imagenes = [ f for f in listdir(path) if isfile(join(path,f))]
+    contador = 0
+    while len(imagenes) > 0:
     ##### Se obtiene el tiempo inicial ####
-    t1 = time.time()
+        t1 = time.time()
     
     ##### Se obtiene la imagen dada como parametro ####
-    imagen = Image.open(argv[1])
+        imagen = Image.open(path+imagenes.pop(0))
     
     ### Se guarda en una variable la imagen original ###
-    original = imagen
+        original = imagen
 
     #### Se utilizo la mascara de Prewitt para la deteccion de bordes ###
-    px = np.array([[-1,0,1], [-1,0,1], [-1,0,1]])
-    py = np.array([[1,1,1], [0,0,0], [-1,-1,-1]])
+        px = np.array([[-1,0,1], [-1,0,1], [-1,0,1]])
+        py = np.array([[1,1,1], [0,0,0], [-1,-1,-1]])
 
 
     ####### Obtiene la convolucion para obtener bordes #####
-    g = (convolucion(original, px)**2 + convolucion(original, py)**2) ** 0.5
+        g = (convolucion(original, px)**2 + convolucion(original, py)**2) ** 0.5
 
     ######## Binarizacion de la imagen ######
-    prom = np.average(g)
-    ancho, altura = imagen.size
-    imagen = imagen.convert('L')
-    im = imagen.load()
-    for x in xrange(ancho):
-        for y in xrange(altura):
-            if g[x, y] < 4 * prom / 3:
-                im[x, y] = 0
-            else:
-                im[x, y] = 255
+        prom = np.average(g)
+        ancho, altura = imagen.size
+        imagen = imagen.convert('L')
+        im = imagen.load()
+        for x in xrange(ancho):
+            for y in xrange(altura):
+                if g[x, y] < 4 * prom / 3:
+                    im[x, y] = 0
+                else:
+                    im[x, y] = 255
     ### Deteccion del drone y una lista con las direcciones a realizar #####
-    resultado, direcciones = deteccionObjetos(Image.fromarray(np.array(imagen)))
+        resultado, direcciones = deteccionObjetos(Image.fromarray(np.array(imagen)))
 
     ######## Tkinter #######
-    root = Tkinter.Tk()
-    tkimageOrig = ImageTk.PhotoImage(original)
-    tkimageDeteccionObjetos = ImageTk.PhotoImage(resultado)
+    #    root = Tkinter.Tk()
+    #    tkimageOrig = ImageTk.PhotoImage(original)
+    #    tkimageDeteccionObjetos = ImageTk.PhotoImage(resultado)
 
     ###### Se obtienen las direcciones de la lista ####
-    while len(direcciones) > 0:
+    #    while len(direcciones) > 0:
         ### Se crea un label con la direccion ###
-        message = Tkinter.Label( root, text=direcciones.pop(0) )
-        message.pack(fill=Tkinter.BOTH)
+    #        message = Tkinter.Label( root, text=direcciones.pop(0) )
+    #        message.pack(fill=Tkinter.BOTH)
 
     ##### Se agrega al canvaz la imagen original y la imagen con la deteccion del drone #####
-    Tkinter.Label(root, image = tkimageOrig).pack(side="right")
-    Tkinter.Label(root, image = tkimageDeteccionObjetos).pack(side="left")
-    root.mainloop()
-
+    #    Tkinter.Label(root, image = tkimageOrig).pack(side="right")
+    #    Tkinter.Label(root, image = tkimageDeteccionObjetos).pack(side="left")
+    #    root.mainloop()
 
     ###### Tiempo ######
-    t2 = time.time()
-    print "Tiempo total: ", t2 - t1
-
+        t2 = time.time()
+        print "%s %s"%( contador, ( t2 - t1 ) )
+        contador+=1
 main()
